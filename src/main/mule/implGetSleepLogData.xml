@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<flow name="getSleepDataFlow" doc:id="0306c50d-4783-4163-beb2-5430003b077f" >
+		<logger level="INFO" doc:name="Log Start" doc:id="33c5f04f-274c-4c3a-97e5-53c225e61e4b" message="Retrieving Sleep Logs for the User"/>
+		<ee:cache doc:name="Cache" doc:id="d48ec565-0619-4d03-9899-da281d380fb7" cachingStrategy-ref="caching-strategy">
+			<set-variable value='#[vars.familyMemberId default attributes.queryParams.familyMemberId]' doc:name="Set Family Member Id" doc:id="e3b1859e-2eb8-4e75-8f06-fa316f2c38f3" variableName="familyMemberId" />
+			<flow-ref doc:name="getAccessToken" doc:id="0fb54332-6f72-4234-b71a-112a5c87a437" name="getAccessToken" />
+			<http:request method="GET" doc:name="Get Sleep Logs" doc:id="c3f03711-d573-4ccb-9aa4-40c116a78730" config-ref="fitbit-http-request-configuration" path='#["/1/user/" ++ (vars.tokenData.user_id default "-") ++ "/sleep/list.json"]' sendCorrelationId="AUTO" correlationId="#[correlationId]">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	Authorization : "Bearer " ++ (vars.accessToken default "")
+}]]]></http:headers>
+				<http:query-params ><![CDATA[#[output application/java
+---
+{
+	offset : vars.sleepData.offset default attributes.queryParams.offset,
+	limit : vars.sleepData.limit default attributes.queryParams.limit,
+	sort : vars.sleepData.sort default  attributes.queryParams.sort,
+	afterDate :  vars.sleepData.afterDate default  attributes.queryParams.beforeDate
+}]]]></http:query-params>
+		
+</http:request>
+
+</ee:cache>
+		<logger level="INFO" doc:name="Log End" doc:id="1aba0ccf-b336-459b-b758-cca1c8c4b209" message='#["Sleep Logs were retrieved for the user " ++ (vars.familyMemberId default "")]' />
+	
+</flow>
+</mule>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="authorizeFlow" doc:id="f50a5f2a-eba0-4cea-8c12-b08d916c46a1" >
+		<logger level="INFO" doc:name="Checking if user is authorized ?" doc:id="c6747876-cd58-46d4-8d67-ed730e0c760e" message="Checking if the user is authorized"/>
+		<set-variable value="#[message.attributes.uriParams.'familyMemberId']" doc:name="Set familyMemberId" doc:id="29ec34e1-7209-4475-988a-44a6e3e0cd99" variableName="familyMemberId"/>
+		<os:contains doc:name="Contains" doc:id="396a6855-0c02-4fa3-8753-4d6eaf96e380" objectStore="access-token-store" key="#[vars.familyMemberId]"/>
+		<choice doc:name="Check if Authorized for fitbit" doc:id="4f12fd6f-2f3f-4fd9-bd14-c9d34b52d570" >
+			<when expression="#[payload as Boolean == true]">
+				<ee:transform doc:name="Already Authorized" doc:id="f538a858-34e5-475c-ad4d-02dfc573c141" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Authorized"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Share Authorization URL" doc:id="aca6dcb3-dd2c-42ea-9e52-35f9fa3f3521" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+		message: "UnAuthorized!" ++ "  share this URL to get Consent : \n " ++ "https://www.fitbit.com/oauth2/authorize?response_type=code&state=" ++ (vars.familyMemberId default "") ++ "&client_id=23BL4H&scope=activity%20nutrition%20heartrate%20location%20nutrition%20profile%20settings%20sleep%20social%20weight"
+
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

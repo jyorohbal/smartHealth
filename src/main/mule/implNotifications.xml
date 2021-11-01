@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:twilio="http://www.mulesoft.org/schema/mule/twilio" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/twilio http://www.mulesoft.org/schema/mule/twilio/current/mule-twilio.xsd">
+	<flow name="notificationsFlow" doc:id="5c31292e-ff3b-4120-9a5e-c85dfcb66321" >
+		<scheduler doc:name="Scheduler" doc:id="07f66df2-0461-41f7-ad23-b081c64c5392" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="1" timeUnit="DAYS" startDelay="10"/>
+			</scheduling-strategy>
+		</scheduler>
+		<flow-ref doc:name="getFamilyMembersForNotificationsFlow" doc:id="456f71d5-ab5a-4aad-9d84-efad0efe4735" name="getFamilyMembersForNotificationsFlow"/>
+		<choice doc:name="Check If the Payload is Empty" doc:id="ebf1e628-0442-4da7-b7b1-54fdc3afa288" >
+			<when expression="#[not isEmpty(payload)]">
+				<parallel-foreach doc:name="Parallel For Each" doc:id="1c89b648-c24b-4040-8e09-ff4a2c7ce035">
+			<logger level="INFO" doc:name="Log Start for User " doc:id="f98f902d-7036-4f14-b70c-d801fd9ea6d6" message='#["Checking Daily Notifications for user: " ++ (payload.firstName default "")]' />
+			<set-variable value="#[payload.id]" doc:name="Set familyMemberId" doc:id="f31d2cc5-675e-4fda-94d4-09e529df0866" variableName="familyMemberId" />
+			<set-variable value="#[payload.firstName]" doc:name="Set First Name" doc:id="3f5d3f50-d03a-41fb-abb9-2fa4886b32f3" variableName="firstName"/>
+					<set-variable value="#[payload.phoneNumber]" doc:name="Set Phone Number" doc:id="6cbd75a7-55db-48ea-9c49-9d54ba52e733" variableName="phone"/>
+				
+					<salesforce:query doc:name="Query Notification Settings" doc:id="9c68e990-b413-425d-8670-570b030a6e03" config-ref="salesforce-config" target="notificationData">
+						<salesforce:salesforce-query ><![CDATA[SELECT FIELDS(ALL) FROM PMO_Tool__MuleFitNotify__c WHERE PMO_Tool__MuleyFitAccount__c = ':recordId' LIMIT 200]]></salesforce:salesforce-query>
+						<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	recordId : payload.id
+}]]]></salesforce:parameters>
+					</salesforce:query>
+					<set-variable value='#[if (vars.notificationData.PMO_Tool__No_Of_Past_Days__c[0] == "One Day") "1d" else if (vars.notificationData.PMO_Tool__No_Of_Past_Days__c[0] == "One Week") "1w"  else  "1m"]' doc:name="Set Period" doc:id="d640c0b6-88fa-4530-a555-e4efa6db5556" variableName="period" />
+					<scatter-gather doc:name="Scatter-Gather" doc:id="e78a8356-eaa2-4879-85ef-5930d1a90ce3">
+						<route>
+							<flow-ref doc:name="heartRateNotification" doc:id="300786b9-10e1-42a7-bf08-c16b62185111" name="heartRateNotification" />
+						</route>
+						<route>
+							<flow-ref doc:name="lowActivityNotifications" doc:id="aab5199d-2cdd-47d1-9fa4-7c0e96f4c604" name="lowActivityNotifications" />
+						</route>
+						<route>
+							<flow-ref doc:name="lowSleepNotification" doc:id="ed2d89fb-d3c5-49e6-938c-88cef031cc19" name="lowSleepNotification" />
+						</route>
+					</scatter-gather>
+			<logger level="INFO" doc:name="Notifications Sent" doc:id="1c7e3b13-8932-43b2-a057-301c0dc78e57" message='#["sent all notifications for User " ++ (vars.firstName default "")]' />
+			</parallel-foreach>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log End" doc:id="4a0bb6de-bcd7-48fe-bf57-fcdf0667faed" message="There are no users with notification enabled"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<sub-flow name="lowActivityNotifications" doc:id="8ef3f8a4-9b85-448d-a691-7ee3f69b24e8">
+		<choice doc:name="Check if Activity Notification is Enabled" doc:id="052670fd-735f-402b-9692-f400800b7876" >
+			<when expression='#[vars.notificationData.PMO_Tool__Low_Physical_Activity__c[0] as Boolean == true]'>
+				<set-variable value="#[{&#10;&#10;	value: vars.notificationData.PMO_Tool__No_Of_Steps_Threshold__c[0]&#10;	&#10;}]" doc:name="Set Threshold" doc:id="22fc23d6-ded7-4f39-9f71-d4aeae6dce0a" variableName="threshold"/>
+				<flow-ref doc:name="getActivitySummaryFlow" doc:id="62dfb736-c38c-4826-aa8d-55cc28b80408" name="getActivityTimeSeriesFlow" />
+				<ee:transform doc:name="CalculateLowActivity" doc:id="6a4fe0f8-9fb4-46ac-9746-f6086cb5229e">
+			<ee:message>
+						<ee:set-payload resource="dwls/calLowPhysicalActivity.dwl" />
+			</ee:message>
+			
+			
+		</ee:transform>
+				<choice doc:name="Send notification if activity is low" doc:id="47af7750-0f81-40ee-95c2-40882772c501" >
+					<when expression="#[not isEmpty(payload.message)]">
+						<set-variable value="#[output application/json ---&#10;{&#10;	toNumber: vars.phone,&#10;	message: payload.message&#10;	&#10;}]" doc:name="Set smsData" doc:id="a086ba6e-2a7c-4643-8298-cc75a6e081f4" variableName="smsData"/>
+						<flow-ref doc:name="sendSMSNotification" doc:id="9a51267b-021a-4f0a-bc47-36ddf306be06" name="sendSMSNotification"/>
+						<logger level="INFO" doc:name="Log sent " doc:id="4889dd6f-e90e-4b0a-b5c2-8ee2cec8a347" message="Notification sent for low steps activity"/>
+					</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Log Notification Not Required" doc:id="a2a213e0-5432-4d7c-bc05-96a3d9dbf98d" message="Low Physical Activity Notification Not Required" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log Activity Notification Disabled" doc:id="2b94d444-7f20-4bd9-a59b-e625dff77111" message="Log Activity Notification Disabled"/>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="lowSleepNotification" doc:id="29cad920-a2e2-4487-8415-90c3e358d12d" >
+		
+		<choice doc:name="Check if Sleep Notification is enabled" doc:id="5b3dac85-2abb-4114-bd4c-c4126b502851" >
+			<when expression="#[vars.notificationData.PMO_Tool__Notify_on_Low_Sleep_Duration__c[0] as Boolean == true]">
+				<ee:transform doc:name="Set Data Variables" doc:id="464581dc-373f-42e6-bd6e-382f6a898c73">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable resource="dwls/setSleepDataVariables.dwl" variableName="sleepData" />
+					</ee:variables>
+				</ee:transform>
+				<flow-ref doc:name="getSleepDataFlow" doc:id="5be4bf0c-5840-4df2-ad63-748db3c9b04d" name="getSleepDataFlow" />
+				<ee:transform doc:name="CalculateLowSleep" doc:id="66a8c5d0-e8e7-4f95-8b71-0e00000b548c">
+			<ee:message>
+						<ee:set-payload resource="dwls/calLowSleepDuration.dwl" />
+			</ee:message>
+		</ee:transform>
+				<choice doc:name="Send notification if Sleep Time is low" doc:id="3719f5e9-871d-485a-8868-8ba676ef71ec" >
+					<when expression="#[not isEmpty(payload.message)]">
+						<set-variable value="#[{&#10;&#10;	toNumber: vars.phone,&#10;&#10;	message: payload.message&#10;&#10;	&#10;&#10;}]" doc:name="Set smsData" doc:id="01313527-08a4-4bf3-9aed-c390fbee8e36" variableName="smsData"/>
+						<flow-ref doc:name="sendSMSNotification" doc:id="2bc33a6b-ddfa-494c-8c61-581ae54f58f9" name="sendSMSNotification"/>
+						<logger level="INFO" doc:name="Log Notification Sent" doc:id="142b24fb-93ea-4073-9fdd-6fdce8633867" message="Low Sleep Notification Sent" />
+					
+</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Log Notification Not Required" doc:id="449b581a-d2c9-46c7-b06b-2a3ca61e6776" message="Sleep  Notification Not Required" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log Disabled" doc:id="c7d49313-2e8d-42cd-a23b-30c36c9d6a69" message='#["Sleep Notification Disabled for&#10;"  ++ (vars.familyMemberId default "")]'/>
+			</otherwise>
+		</choice></sub-flow>
+	<sub-flow name="heartRateNotification" doc:id="b5b73ea3-c95c-4c96-b291-872bce840f0d" >
+		<choice doc:name="Check if Hear rate Notifications enabled" doc:id="64dca2a2-3074-4239-b46c-4ffe6f5b829a" >
+			<when expression="#[vars.notificationData.PMO_Tool__Low_Heart_Rate__c[0] as Boolean == true]">
+				<ee:transform doc:name="Set Data Variables" doc:id="b28705e0-db1e-4864-b111-e53d37ced223">
+			<ee:message>
+			</ee:message>
+					<ee:variables>
+						<ee:set-variable resource="dwls/setHeartRateDataVariables.dwl" variableName="heartRateData" />
+					</ee:variables>
+		</ee:transform>
+				<flow-ref doc:name="getHeartRateFlow" doc:id="baff4017-5c6d-4d8d-9a6c-d2cfc716411e" name="getHeartRateFlow" />
+				<logger level="INFO" doc:name="Log Data" doc:id="2b9f09af-c2d6-48eb-9671-70c8ce572981" message="#[output application/java --- write (payload)]"/>
+				<ee:transform doc:name="Calaculate heart Rate Values for notification" doc:id="4a08c0b9-3b89-44ab-a2b1-40c3227ae4c5">
+					<ee:message>
+						<ee:set-payload resource="dwls/calHeartRateRange.dwl" />
+					</ee:message>
+				</ee:transform>
+				<choice doc:name="Send notification if HearRate  is low" doc:id="f453f02d-eb68-4d75-ab16-fc7936f6c1b5" >
+					<when expression="#[not isEmpty(payload.message)]">
+						<set-variable value="#[{&#10;&#10;	toNumber: vars.phone,&#10;&#10;	message: payload.message&#10;&#10;	&#10;&#10;}]" doc:name="Set smsData" doc:id="696c8160-e800-4693-91cf-108ee4526d7c" variableName="smsData"/>
+						<flow-ref doc:name="sendSMSNotification" doc:id="4da50bdf-c6f3-4ee8-be6c-4094dbe58435" name="sendSMSNotification"/>
+						<logger level="INFO" doc:name="Log Notification Sent" doc:id="d9af4805-0283-46fc-bafe-d918e2bc17d0" message="Hear Rate Notification Sent" />
+					
+</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Log Notification Not Required" doc:id="4712fc88-28f4-4aad-b6cb-acef5e919252" message="Heart  Rate Notification Not Required" />
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log disabled" doc:id="c1f3f8e2-8e2a-40af-a5a5-790cb462710e" message='#["Heart Rate Notification Disabled for&#10;"  ++ (vars.familyMemberId default "")]'/>
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

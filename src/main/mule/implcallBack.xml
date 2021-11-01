@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:twilio="http://www.mulesoft.org/schema/mule/twilio" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/twilio http://www.mulesoft.org/schema/mule/twilio/current/mule-twilio.xsd">
+	
+	<flow name="callBackFlow" doc:id="8f321974-d141-45d8-8e4d-2216d6a35286" >
+		<set-variable value="#[message.attributes.queryParams.code default null]" doc:name="Set Code" doc:id="7c662ec9-b257-4604-bf00-323fbd525a90" variableName="authCode" />
+		<set-variable value='#[(attributes.queryParams.state default attributes.queryParams.familyMemberId)]' doc:name="Set FamilyMember ID" doc:id="f5c9b504-0d3b-4553-a086-aebdde0721ff" variableName="familyMemberId" />
+		<logger level="INFO" doc:name="Log auth Code" doc:id="2fd8e885-7a16-4559-9685-bc3732d8f391" message='#[" auth Code is  " ++ (vars.authCode default "") ++ "for user:" ++ vars.familyMemberId]'/>
+		<flow-ref doc:name="getAccessToken" doc:id="09821ce9-f506-4be5-be70-53b8d409c434" name="getAccessToken"/>
+		<ee:transform doc:name="response" doc:id="73fb2686-d618-4d8f-9a09-c720be91fa42" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message : "access Token retrieved and stored successfully"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log stored" doc:id="5b74de2a-3af3-4a54-a421-7fe5d05e5d6a" message="Access token stored"/>
+		<set-variable value="302" doc:name="Set status" doc:id="20f5b3b6-8edb-483d-8546-a367ed1a6638" variableName="httpStatus"/>
+		<set-variable value="${callback.redirectURL}" doc:name="Set Variable" doc:id="27e25c55-4a6b-4d9f-8e88-a73472c42d4c" variableName="redirectUrl"/>
+	</flow>
+	
+	</mule>

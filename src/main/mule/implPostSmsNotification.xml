@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:twilio="http://www.mulesoft.org/schema/mule/twilio"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/twilio http://www.mulesoft.org/schema/mule/twilio/current/mule-twilio.xsd">
+	<flow name="sendSMSNotification" doc:id="d2cd679a-4f1c-4c02-b664-1951ea0f42f6" >
+		<logger level="INFO" doc:name="Log Start" doc:id="7ac69822-b7ea-4616-ad40-81e69f48d744" message="sending message "/>
+		<ee:transform doc:name="set Input data" doc:id="fee7ad3a-b5c7-4621-8c0e-a1b5349e0f0d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/x-www-form-urlencoded
+---
+{
+	From: Mule::p('secure::sms.fromNumber'),
+	To: vars.smsData.toNumber default payload.toNumber ,
+	Body: vars.smsData.message  default payload.message  
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<twilio:create20100401-accounts-messagesjson-by-account-sid doc:name="Create Message" doc:id="933e3ccc-2a42-4ee3-90d0-38f8f76b1216" config-ref="twilio-connector-config" accountSid="${twilio.accountId}">
+			<twilio:custom-query-params ><![CDATA[#[output application/java
+---
+{
+	"Key" : "Value"
+}]]]></twilio:custom-query-params>
+		</twilio:create20100401-accounts-messagesjson-by-account-sid>
+		<logger level="INFO" doc:name="Log end" doc:id="3f5da038-5079-4de7-9df7-45d7145c02af" message="message has been  sent "/>
+	
+</flow>
+	
+	</mule>

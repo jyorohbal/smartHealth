@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="getAccessToken" doc:id="e12f9cdb-73b8-45c4-9296-daa049b3ba6a" >
+		<os:retrieve doc:name="Retrieve token Data" doc:id="395feb2f-d881-4d96-93ca-189d7429f8d7" key="#[vars.familyMemberId]" objectStore="access-token-store" target="tokenData">
+			<os:default-value ><![CDATA[#[""]]]></os:default-value>
+		</os:retrieve>
+		<choice doc:name="Check if access token data exists" doc:id="1b85468b-2ecf-48f2-a44b-b027af7a2e1a" >
+			<when expression="#[(not isEmpty(vars.tokenData))]">
+				<ee:transform doc:name="calculate and set token expired flag" doc:id="70498d87-f453-4f29-9b80-f24812a9283a">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable resource="dwls/tokenExpiredFlag.dwl" variableName="tokenExpiredFlag" />
+					
+</ee:variables>
+				</ee:transform>
+				<logger level="DEBUG" doc:name="Log Token ExpiredFlag" doc:id="d1622fe4-0a25-4441-a9e5-b27ff252c10a" message="#[vars.tokenExpiredFlag]"/>
+				<choice doc:name="check if token expired" doc:id="8ac3b340-6291-4b2e-b143-f64184c88451" >
+					<when expression="#[vars.tokenExpiredFlag &lt; 0]">
+						<logger level="INFO" doc:name="Log token expired" doc:id="e2cb2fe4-2cb2-4629-a02e-d4cf9e0f6953" message="Token expired"/>
+						<set-variable value="#[vars.tokenData.refresh_token]" doc:name="Set Refresh Token" doc:id="7c367bb8-d45e-4508-9275-540c7633c8f8" variableName="refreshToken"/>
+						<flow-ref doc:name="Refresh Access Token" doc:id="832e7bd3-3e07-4691-89a8-4964aa87a8db" name="refeshToken"/>
+					
+</when>
+					<otherwise >
+						<logger level="INFO" doc:name="Log token valid" doc:id="5990b571-c847-4c78-a9b2-8a537bf4965e" message="Token exists and valid"/>
+						<set-variable value="#[vars.tokenData.access_token]" doc:name="Set accessToken" doc:id="300c2065-e91e-454e-a6fe-9e602b2ebf88" variableName="accessToken"/>
+					</otherwise>
+				</choice>
+			
+</when>
+			<when expression="#[isEmpty(attributes.queryParams.code) and isEmpty(vars.tokenData)]">
+				<raise-error doc:name="Raise UnAuthorized error" doc:id="1a7527ce-a65f-48cb-9496-bf7ed710294c" type="FITBIT:UNAUTHORIZED" description="Fitbit user is not yet authorized"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Log access token retrieve" doc:id="6251add5-aa90-4951-95af-a76d6f451c88" message="Token not available in store . Trying to retrieve new access token "/>
+				<http:request method="POST" doc:name="Get Access Token" doc:id="1bced5df-1476-4c0b-b5db-3eeb35679696" config-ref="fitbit-http-request-configuration" path="/oauth2/token" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" target="oAuthToken">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"Authorization" : "Basic " ++ Mule::p('secure::fitbit.authHeader'),
+	"Content-Type" : "application/x-www-form-urlencoded"
+}]]]></http:headers>
+			<http:query-params><![CDATA[#[output application/java
+---
+{"code": attributes.queryParams.code,
+	"grant_type": "authorization_code",
+	
+}]]]></http:query-params>
+		</http:request>
+				<ee:transform doc:name="setExpirationTime" doc:id="0f65d7c7-f207-4d7c-b17d-fe229e077ff3">
+					<ee:message>
+						<ee:set-payload resource="dwls/setExpirationDateTime.dwl" />
+					
+</ee:message>
+				</ee:transform>
+				<os:store doc:name="Store token" doc:id="11435315-f7da-4b26-b631-57ee40627bdb" objectStore="access-token-store" key="#[vars.familyMemberId]">
+		</os:store>
+				<set-variable value="#[vars.oAuthToken.access_token]" doc:name="Set accessToken" doc:id="31794b29-664c-4465-abb9-22879e1a6209" variableName="accessToken"/>
+			
+</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="refeshToken" doc:id="b59a47a4-6937-49c0-b562-1cbe11a41230" >
+		<logger level="INFO" doc:name="Log refresh token" doc:id="47f50371-0dbd-47f5-b26e-3989cf7421e2" message="Trying to refresh expired token"/>
+		<http:request method="POST" doc:name="refresh token Request" doc:id="358fa6c0-3a33-4226-8646-78d816e654f1" config-ref="fitbit-http-request-configuration" path="/oauth2/token" sendCorrelationId="ALWAYS" correlationId="#[correlationId]" target="oAuthToken">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : "Basic " ++ Mule::p('secure::fitbit.authHeader'),
+	"Content-Type" : "application/x-www-form-urlencoded"
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	refresh_token : vars.tokenData.refresh_token,
+	grant_type : "refresh_token",
+
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Set Expiration Time" doc:id="2090c3b0-50c6-41b8-a5e6-f3d54bb78f08" >
+			<ee:message >
+				<ee:set-payload resource="dwls/setExpirationDateTime.dwl" />
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store Token" doc:id="3c789334-f579-4b65-826c-1c69439345f2" key="#[vars.familyMemberId]" objectStore="access-token-store">
+		</os:store>
+		<set-variable value="#[vars.oAuthToken.access_token]" doc:name="Set accessToken" doc:id="f23b6751-f657-4429-845c-46e019b2bf65" variableName="accessToken"/>
+	</sub-flow>
+	</mule>

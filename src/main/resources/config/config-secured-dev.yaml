@@ -1,0 +1,15 @@
+tlsContext:
+  keyPassword: "![iaEnjKDVHjQ6crA3UPv+Kw==]"
+  password: "![iaEnjKDVHjQ6crA3UPv+Kw==]"
+
+
+salesforce:
+  password: "![zaV8V8H4OZgaKZZ61lSWCA==]"
+  token: "![cqXNcaBG3WDTHpKEj0UccuZGA4XGk7yjRgvsP/UJ6r0=]"
+twilio:
+  password: "![Ia/+BZxnArwPhHQlyDEqupncN9pdxwy1bk8Hk2QrZcqVLJBqIESBUQ==]"
+  
+fitbit:
+  authHeader: "![RjzAeAaTOp+p1xCo895eUJupE0PwXBR9TheYFPK4OH5OeUdbFo00fdAkamKQrqpqVbWLweGQyzE=]"
+sms:
+  fromNumber: "![cgoF8zx1wzzo67qiFZDnPg==]"

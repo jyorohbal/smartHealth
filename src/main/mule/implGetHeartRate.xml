@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	
+	<flow name="getHeartRateFlow" doc:id="8c0c8a90-966a-4eb7-bae0-85c3a2c8438b" >
+		<logger level="INFO" doc:name="Log Start" doc:id="0931a9b0-950f-435d-b309-7c4d64471625" message="Process Started to Retrieve Heart Rate Data. "/>
+		<ee:cache doc:name="Cache" doc:id="a922f775-44bf-421c-bb8d-1308bce5a3a6" cachingStrategy-ref="caching-strategy">
+			<set-variable value='#[vars.familyMemberId default attributes.queryParams.familyMemberId]' doc:name="Set familyMemberId" doc:id="9de83241-fbcb-43ee-8b5e-84fff9546061" variableName="familyMemberId" />
+			<flow-ref doc:name="getAccessToken" doc:id="bdc6f2b5-0535-49b1-84f8-826b9ccc5409" name="getAccessToken" />
+			<http:request method="GET" doc:name="Get Heart Rate Data" doc:id="d452b6a8-051c-4dda-bab3-bd2e6c6164ac" config-ref="fitbit-http-request-configuration" path='#["1/user/" ++ (vars.tokenData.user_id default "-") ++ "/activities/heart/date/" ++ (attributes.queryParams.date default "today") ++ "/" ++ (vars.period default attributes.queryParams.period default "") ++ ".json"]'>
+				<http:headers ><![CDATA[#[output application/java
+---
+{
+	Authorization : "Bearer " ++ (vars.accessToken default "")
+}]]]></http:headers>
+			</http:request>
+			<ee:transform doc:name="Mock Heart Rate Response" doc:id="a603f8d4-b31b-426b-a3d4-a5871bb00fbe" >
+				<ee:message >
+					<ee:set-payload resource="dwls/heartRateResponse.dwl" />
+				</ee:message>
+			</ee:transform>
+		</ee:cache>
+		<logger level="INFO" doc:name="Log End" doc:id="72349307-8e3a-45d5-b139-ce087e9ee167" message="Heart Rate data has been retrieved successfully. "/>
+	</flow>
+</mule>
