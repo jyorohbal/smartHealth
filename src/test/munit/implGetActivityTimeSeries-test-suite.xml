@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="implGetActivityTimeSeries-test-suite.xml" />
+<munit:test name="implGetActivityTimeSeriesTest" doc:id="2adf7b5a-ba2d-473a-8921-fd21da6a4972" description="Test">
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="Mock when retrieve token data from object store" doc:id="5142910c-0f40-469a-8c06-02ab0a700a48" processor="os:retrieve">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Retrieve token Data" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="tokenData" value="#[MunitTools::getResourceAsString('acessTokenResponse.json')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			
+</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when calling fitbit api to get token" doc:id="53f873b1-eb48-456d-8b4d-4b453efff3c7" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="Get Access Token" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="oAuthToken" attributeName="target" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="oAuthToken" value="#[MunitTools::getResourceAsString('acessTokenResponse.json')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when calling  refresh token endpoint" doc:id="e38d1d8a-e22d-4b59-a9ad-f14a7d2061a1" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="POST" attributeName="method" />
+					<munit-tools:with-attribute whereValue="refresh token Request" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="oAuthToken" value="#[MunitTools::getResourceAsString('acessTokenResponse.json')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when storing refresh token" doc:id="6699d94e-be35-44fa-9005-adaf08cf6f89" processor="os:store">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Store Token" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="access-token-store" attributeName="objectStore" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:variables >
+						<munit-tools:variable key="tokenData" value="#[MunitTools::getResourceAsString('acessTokenResponse.json')]" mediaType="application/json" encoding="UTF-8" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when storing token" doc:id="e9f875f1-c5c5-4cb1-b64b-9f412efea415" processor="os:store">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="Store token" attributeName="doc:name" />
+					<munit-tools:with-attribute whereValue="access-token-store" attributeName="objectStore" />
+				</munit-tools:with-attributes>
+			
+</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Mock when Get Fitbit Activity Data" doc:id="97044308-dba9-4b66-9582-6079157e187a" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="GET" attributeName="method" />
+					<munit-tools:with-attribute whereValue="get Activity Time series" attributeName="doc:name" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[MunitTools::getResourceAsString('activityResponse.json')]" mediaType="application/json" encoding="UTF-8" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		
+</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="67b0b493-7670-4cd3-bf4a-f1438acff258" >
+				<munit:attributes value='#[{"queryParams": {"code": "12345","activityType": "steps","period":"1d"} , "uriParams":{"familyMemberId": "12345"}}]' />
+
+			</munit:set-event>
+			<flow-ref doc:name="callBackFlow" doc:id="717ae81b-d596-43a6-849c-b688048279f3" name="get:\family-member\(familyMemberId)\activity:application\json:smartHealth-config"/>
+		</munit:execution>
+		<munit:validation>
+			<munit-tools:assert-equals doc:name="Assert equals" doc:id="6bc85b23-e18f-4ba6-9028-e7306c028f5b" actual="#[payload]" expected='#[{"activities-steps":[{"dateTime":"2021-10-26","value":"4184"},{"dateTime":"2021-10-27","value":"5578"},{"dateTime":"2021-10-28","value":"2092"},{"dateTime":"2021-10-29","value":"2789"},{"dateTime":"2021-10-30","value":"3486"},{"dateTime":"2021-10-31","value":"4184"},{"dateTime":"2021-11-01","value":"4644"}]}]'/>
+		
+</munit:validation>
+	
+</munit:test>
+
+</mule>
