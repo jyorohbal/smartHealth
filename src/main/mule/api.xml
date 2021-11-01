@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <flow name="smartHealth-main">
+        <http:listener config-ref="smartHealth-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[output application/java
+---
+{
+	"Location" : vars.redirectUrl
+}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="smartHealth-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="smartHealth-console">
+        <http:listener config-ref="smartHealth-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="smartHealth-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\activity:application\json:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="getActivityTimeSeriesFlow" doc:id="6dbcc912-4945-41eb-9464-237ba255ec72" name="getActivityTimeSeriesFlow" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\authorize:application\json:smartHealth-config">
+        <flow-ref doc:name="authorizeFlow" doc:id="3cdee2ab-9028-4f57-8841-13574c309fe7" name="authorizeFlow" />
+    </flow>
+    <flow name="get:\callback:smartHealth-config">
+        <flow-ref doc:name="callBackFlow" doc:id="9213b22c-8dd5-4194-b904-e42a524e2a8f" name="callBackFlow" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\daily-summary:application\json:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\heart-rate:application\json:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="getHeartRateFlow" doc:id="3d607746-e08f-4015-a52c-6c6cb1caf465" name="getHeartRateFlow" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\sleep:application\json:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="getSleepDataFlow" doc:id="ded3bee8-e0e1-4919-b8f9-ac29f95dddd1" name="getSleepDataFlow" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId):application\json:smartHealth-config">
+        <flow-ref doc:name="getFamilyMemberByIDFlow" doc:id="111e5002-63f9-4a9f-922d-9f4d0442646d" name="getFamilyMemberByIDFlow" />
+    </flow>
+    <flow name="post:\family-member:application\json:smartHealth-config">
+        <flow-ref doc:name="postFamilyMembersFlow" doc:id="69479fd3-b258-4099-9c25-e169dba3f603" name="postFamilyMembersFlow" />
+    </flow>
+    <flow name="post:\family-member\(familyMemberId)\notification-settings:application\json:smartHealth-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Not Implemented"
+}]]></ee:set-payload>
+            </ee:message>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId"><![CDATA[attributes.uriParams.'familyMemberId']]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+    </flow>
+    <flow name="post:\sms-notification:application\json:smartHealth-config">
+        <flow-ref doc:name="sendSMSNotification" doc:id="c691720f-723e-4a04-b0e8-c63ad8dd8b03" name="sendSMSNotification" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\activity:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\family-member\(familyMemberId)\activity:smartHealth-config" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\authorize:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\family-member\(familyMemberId)\authorize:smartHealth-config" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\daily-summary:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\family-member\(familyMemberId)\daily-summary:smartHealth-config" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\heart-rate:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\family-member\(familyMemberId)\heart-rate:smartHealth-config" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId)\sleep:smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\family-member\(familyMemberId)\sleep:smartHealth-config" />
+    </flow>
+    <flow name="get:\family-member\(familyMemberId):smartHealth-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="familyMemberId">attributes.uriParams.'familyMemberId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\family-member\(familyMemberId):smartHealth-config" />
+    </flow>
+</mule>

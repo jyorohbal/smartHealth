@@ -1,0 +1,24 @@
+
+https:
+  port: "443"
+
+
+objectStore:
+  accessToken:
+    maxEntries: ""
+    entryTtl: "30"
+    expirationInterval: "4" 
+  activityResponse:
+    maxEntries: ""
+    entryTtl: "5"
+    expirationInterval: "4"
+    
+    
+    
+
+callback:
+  redirectURL: "https://ltil-developer-edition.na115.force.com/smartHealth/s/members"
+
+tlsContext:
+  path: "smartHealth.jks"
+  alias: "hackathon"

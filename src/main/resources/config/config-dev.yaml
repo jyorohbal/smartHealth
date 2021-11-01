@@ -1,0 +1,15 @@
+api:
+  id: "17391449"
+
+
+salesforce:
+  userName: "jyotheesh.mb@lntinfotech.com.mul"
+  authURL: "https://login.salesforce.com/services/Soap/u/51.0"
+twilio:
+  baseUri: "https://api.twilio.com"
+  accountId: "AC4737f1d0d0ed2ff105d403cd53a6bade" 
+fitbit:
+  host: "api.fitbit.com"
+    
+
+  

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	
+	<flow name="getFamilyMembersForNotificationsFlow" doc:id="fe08923b-b1f2-4dd2-a622-56d023fc2aa2" >
+		<logger level="INFO" doc:name="Start Log" doc:id="767391dd-7413-45ba-a17d-2631a248d792" message="Retreiving ALL Family Member Records"/>
+		<salesforce:query doc:name="Query Family Members" doc:id="ce524d9c-17db-4787-8fa3-fa4798d7fc8d" config-ref="salesforce-config">
+			<salesforce:salesforce-query ><![CDATA[SELECT FIELDS(ALL) FROM PMO_Tool__MuleyFitAccount__c WHERE PMO_Tool__notifications__c = true LIMIT 200]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="UserData" doc:id="13f06b80-921f-4b1e-aaa5-d351ed630eed" >
+			<ee:message >
+				<ee:set-payload resource="dwls/getFamilyMembersForNotifications.dwl" />
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log End" doc:id="81393f06-ee4a-4897-9920-fe956352cd8d" message="Recieved Family Members Data" />
+	</flow>
+<flow name="getFamilyMemberByIDFlow" doc:id="11500e99-b807-4e63-bd78-884f00256d60" >
+		<logger level="INFO" doc:name="Start Log" doc:id="b496dcb7-87c7-4a43-8f1c-96de45905d43" message="Start"/>
+		<salesforce:query doc:name="Query Family Members" doc:id="fdc08d87-648b-4875-96dc-ab1899ebe2e2" config-ref="salesforce-config">
+			<salesforce:salesforce-query ><![CDATA[SELECT FIELDS(ALL) FROM PMO_Tool__MuleyFitAccount__c WHERE Id = ':Id' LIMIT 200]]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	Id : attributes.uriParams.'familyMemberId'
+}]]]></salesforce:parameters>
+		
+</salesforce:query>
+		<ee:transform doc:name="UserData" doc:id="8306895d-6e45-40dd-bbbf-f667f8cc4a45" >
+			<ee:message >
+				<ee:set-payload resource="dwls/getFamilyMembersById.dwl" />
+			
+</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Log End" doc:id="a22aa529-a694-4245-8bd6-c815b6c92cae" message="Recieved Family Members Data" />
+	</flow>
+</mule>

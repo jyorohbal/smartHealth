@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:twilio="http://www.mulesoft.org/schema/mule/twilio" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd  http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd  http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd http://www.mulesoft.org/schema/mule/twilio http://www.mulesoft.org/schema/mule/twilio/current/mule-twilio.xsd http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+    <http:listener-config name="smartHealth-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="${https.port}" protocol="HTTPS" tlsContext="tls-context" />
+    </http:listener-config>
+    <apikit:config name="smartHealth-config" api="resource::3e406fd3-5954-410e-ad92-94d5ab678b53:smarthealth:0.0.10:raml:zip:smartHealth.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <http:request-config name="fitbit-http-request-configuration" doc:name="HTTP Request configuration" doc:id="b5105406-f073-4586-be77-0f3e783fbf8f">
+        <http:request-connection protocol="HTTPS" host="${fitbit.host}" />
+    </http:request-config>
+    <os:object-store name="access-token-store" doc:name="Object store" doc:id="b329af2a-b525-4732-b530-1e2f450710ae" maxEntries="${objectStore.accessToken.maxEntries}" entryTtl="${objectStore.accessToken.entryTtl}" entryTtlUnit="DAYS" expirationInterval="${objectStore.accessToken.expirationInterval}" expirationIntervalUnit="HOURS" />
+    <twilio:config name="twilio-connector-config" doc:name="Twilio Connector Config" doc:id="49382c9c-a347-46ed-8fff-ff422a244584">
+        <twilio:account-sid-auth-token-connection username="${twilio.accountId}" password="${secure::twilio.password}" protocol="HTTPS" baseUri="${twilio.baseUri}" />
+    </twilio:config>
+    <tls:context name="tls-context" doc:name="TLS Context" doc:id="8a5b615d-534d-4804-bf3f-3f4e823cc73c">
+        <tls:key-store type="jks" path="${tlsContext.path}" alias="${tlsContext.alias}" keyPassword="${secure::tlsContext.keyPassword}" password="${secure::tlsContext.password}" />
+    </tls:context>
+    <ee:object-store-caching-strategy name="caching-strategy" doc:name="Caching Strategy" doc:id="16ede80d-9c01-4cd8-ae95-39ae901e6947" keyGenerationExpression="#[(attributes.queryParams.period default &quot;&quot;)++ (attributes.queryParams.activityType default &quot;&quot; ) ++ (vars.familyMemberId default &quot;&quot;)]" objectStore="activity-response-store">
+    </ee:object-store-caching-strategy>
+    <salesforce:sfdc-config name="salesforce-config" doc:name="Salesforce Config" doc:id="c39dd01a-0ad6-49b5-b7a5-d6d30ce8aa0a">
+        <salesforce:basic-connection username="${salesforce.userName}" password="${secure::salesforce.password}" securityToken="${secure::salesforce.token}" url="${salesforce.authURL}" />
+    </salesforce:sfdc-config>
+    <configuration-properties doc:name="common-configuration-properties" doc:id="1c757e6a-d866-4d40-92f8-da84fe029e64" file="config\config-common.yaml" />
+    <configuration-properties doc:name="env-configuration-properties" doc:id="facf5712-5d5d-4727-b49a-815a55f4cd10" file="config\config-dev.yaml" />
+    <secure-properties:config name="secure-properties-config" doc:name="Secure Properties Config" doc:id="e7e6ef66-b448-403e-9dce-9b9dc61667a5" file="config\config-secured-dev.yaml" key="${encryptionKey}">
+        <secure-properties:encrypt algorithm="Blowfish" />
+    </secure-properties:config>
+	
+	<os:object-store name="activity-response-store" doc:name="Object store" doc:id="d87cf379-69bc-48f7-9003-a6d5e621f867" maxEntries="${objectStore.activityResponse.maxEntries}" entryTtl="${objectStore.activityResponse.entryTtl}" entryTtlUnit="MINUTES" expirationInterval="${objectStore.activityResponse.expirationInterval}"/>
+	<api-gateway:autodiscovery apiId="${api.id}" ignoreBasePath="true" doc:name="API-autodiscovery" doc:id="6f7e352a-2152-4746-88ce-adbb5b358538" flowRef="smartHealth-main" />
+</mule>

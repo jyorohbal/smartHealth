@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="getActivityTimeSeriesFlow" doc:id="d861ee95-9944-4458-98c9-f1aefc658306" >
+		<logger level="INFO" doc:name="Log Start" doc:id="cdb208c3-5d1c-4567-846f-5158353e5287" />
+		<ee:cache doc:name="Cache" doc:id="6f06b4d3-5b76-45f4-b299-8216857e2159" cachingStrategy-ref="caching-strategy">
+			<set-variable value='#[vars.familyMemberId default attributes.queryParams.familyMemberId default ""]' doc:name="Set familyMemberId" doc:id="c74cb44f-ea4c-4dfb-a5ec-c5c11f44b487" variableName="familyMemberId" />
+			<flow-ref doc:name="getAccessToken" doc:id="215b08ea-075e-4ede-b105-7d2a6f620a8d" name="getAccessToken" />
+			<http:request method="GET" doc:name="get Activity Time series" doc:id="0510d84e-52f0-471d-9ac0-873792565e45" config-ref="fitbit-http-request-configuration" path='#["/1/user/" ++ (vars.tokenData.user_id default "-") ++ "/activities/" ++ (attributes.queryParams.activityType default "steps" default "") ++ "/date/today/" ++ (attributes.queryParams.period default vars.period default  "1w") ++ ".json"]'>
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	Authorization : "Bearer " ++ (vars.accessToken default "")
+}]]]></http:headers>
+		</http:request>
+		</ee:cache>
+		<logger level="INFO" doc:name="Log End" doc:id="bc1c4ab8-b0d7-46fe-82a0-4625d9070958" message="Activity Data retrieved from FIt bit web api"/>
+	
+</flow>
+	
+	
+</mule>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+
+	<flow name="postFamilyMembersFlow" doc:id="2c783dab-ae1c-422f-92ba-a8d3f33c45ea" >
+		<logger level="INFO" doc:name="Log Start" doc:id="e5f9395d-7c29-4906-8ef7-4fea11d709cc" message="Started"/>
+		<ee:transform doc:name="Transform Message" doc:id="7053dfa0-5a90-4919-a48e-691e4c971882" >
+			<ee:message >
+				<ee:set-payload resource="dwls/postFamilyMembers.dwl" />
+			</ee:message>
+		</ee:transform>
+		<salesforce:create doc:name="Create" doc:id="8ba2e5e8-9850-4b5a-830d-025a5fd3d816" config-ref="salesforce-config" type="PMO_Tool__MuleyFitAccount__c"/>
+		<choice doc:name="Check if Created" doc:id="9732ed57-62a9-472e-aa56-12be3e2474bf" >
+			<when expression="#[payload.successful as Boolean == true]">
+				<set-variable value="payload.items[0].id" doc:name="Set Id" doc:id="bec5b347-db34-4dc7-aa18-630c22892239" variableName="id" />
+				<logger level="INFO" doc:name="Log Created" doc:id="1caf5fac-a2e1-409f-a509-deef9fd9043d" message="Family Member record has been created" />
+			</when>
+			<otherwise>
+				<logger level="ERROR" doc:name="Log Failed" doc:id="3711c539-af0d-477a-abfd-961a45724519" message="Failed to create a record for family member in salesforce"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
